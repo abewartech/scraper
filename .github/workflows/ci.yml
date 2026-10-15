@@ -21,15 +21,20 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, json, tokenizer, xml, ctype
           coverage: none
 
-      - name: Install Composer 1 (matches this project's lockfile era)
-        run: |
-          curl -sS https://getcomposer.org/installer -o composer-setup.php
-          sudo php composer-setup.php --version=1.10.26 --install-dir=/usr/local/bin --filename=composer1
-          rm composer-setup.php
-          composer1 --version
-
       - name: Install Composer dependencies
-        run: composer1 install --prefer-dist --no-interaction --no-progress
+        # --no-scripts: this project's Laravel 6.7 package manifest predates
+        # Composer 2's installed.json format, so artisan package:discover is
+        # run manually after translating the manifest (see next step).
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
+
+      - name: Adapt installed.json for Laravel 6 package discovery
+        # Composer 2 writes vendor/composer/installed.json as {"packages": [...]};
+        # Laravel 6.7's PackageManifest only understands the flat array Composer 1
+        # wrote. Translate the format (data unchanged) so package:discover works.
+        run: php -r '$f="vendor/composer/installed.json"; $d=json_decode(file_get_contents($f),true); if(isset($d["packages"])){file_put_contents($f,json_encode(array_values($d["packages"]))); echo "translated\n";}'
+
+      - name: Discover packages
+        run: php artisan package:discover --ansi
 
       - name: Copy environment file
         run: cp .env.example .env
