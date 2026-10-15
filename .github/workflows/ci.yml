@@ -21,8 +21,15 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, json, tokenizer, xml, ctype
           coverage: none
 
+      - name: Install Composer 1 (matches this project's lockfile era)
+        run: |
+          curl -sS https://getcomposer.org/installer -o composer-setup.php
+          sudo php composer-setup.php --version=1.10.26 --install-dir=/usr/local/bin --filename=composer1
+          rm composer-setup.php
+          composer1 --version
+
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
+        run: composer1 install --prefer-dist --no-interaction --no-progress
 
       - name: Copy environment file
         run: cp .env.example .env
